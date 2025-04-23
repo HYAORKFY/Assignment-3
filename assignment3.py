@@ -5,6 +5,17 @@ def send_request_to_server(host, port, filename):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))
 
+    with open(filename, 'r') as f:
+        for line in f:
+            # Strip the line of any leading/trailing whitespace
+            line = line.strip()
+            if not line:
+                continue  # Skip empty lines
+
+            # Send the request to the server
+            client_socket.send(line.encode('utf-8'))
+
+    # Close the connection
     client_socket.close()
 
 
