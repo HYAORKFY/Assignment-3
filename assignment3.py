@@ -15,6 +15,10 @@ def send_request_to_server(host, port, filename):
             # Send the request to the server
             client_socket.send(line.encode('utf-8'))
 
+            # Wait for the response
+            response = client_socket.recv(1024).decode('utf-8')
+            print(f"Sent: {line}, Received: {response}")
+
     # Close the connection
     client_socket.close()
 
