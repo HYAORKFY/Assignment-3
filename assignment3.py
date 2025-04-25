@@ -29,7 +29,26 @@ def start_server():
 
 def main():
     """Main function to start the client and server."""
-    pass
+    
+    # Start the server in a separate process
+    server_process = multiprocessing.Process(target=start_server)
+    server_process.start()
+
+    # Wait for the server to start
+    time.sleep("1")
+
+    # Find all client_*.txt files in the same directory
+    client_files = glob.glob('client_*.txt')
+
+    # Read and process each file
+    for file in client_files:
+        print(f"Processing {file}")
+        # Send the request to the server (localhost, port 51234)
+        send_request_to_server('localhost', 51234, file)
+
+    # After all clients are done, wait a bit and then stop the server
+    time.sleep("5")
+    server_process.terminate()
 
 if __name__ == '__main__':
     main()
