@@ -1,4 +1,7 @@
+import glob
+import os
 import socket
+import multiprocessing
 
 def send_request_to_server(host, port, filename):
     """Send each line of the file as a request to the server."""
@@ -25,17 +28,34 @@ def send_request_to_server(host, port, filename):
 
 def start_server():
     """The TCP server that will handle client connections."""
-    pass
+    host = 'localhost'
+    port = 51234
+
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(host,port)
+    server_socket.listen(5)
+
+
+    while True:
+        client_conn, client_addr = server_socket.accept()
+        print(f"Accepted connection from {client_addr}")
+
+        with client_conn:
+            while True:
+                data = client_conn.recv(1024).decode('utf-8')
+                if not:
+                    break
+
 
 def main():
     """Main function to start the client and server."""
-    
+
     # Start the server in a separate process
     server_process = multiprocessing.Process(target=start_server)
     server_process.start()
 
     # Wait for the server to start
-    time.sleep("1")
+    time.sleep(1)
 
     # Find all client_*.txt files in the same directory
     client_files = glob.glob('client_*.txt')
@@ -47,7 +67,7 @@ def main():
         send_request_to_server('localhost', 51234, file)
 
     # After all clients are done, wait a bit and then stop the server
-    time.sleep("5")
+    time.sleep(5)
     server_process.terminate()
 
 if __name__ == '__main__':
