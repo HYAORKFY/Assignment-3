@@ -32,19 +32,53 @@ def start_server():
     port = 51234
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(host,port)
+    server_socket.bind((host, port))
     server_socket.listen(5)
 
+    # Keep track of some statistics
+    total_clients = 0
+    total_operations = 0
+    total_reads = 0
+    total_gets = 0
+    total_puts = 0
+    errors = 0
 
-    while True:
-        client_conn, client_addr = server_socket.accept()
-        print(f"Accepted connection from {client_addr}")
+    # The tuple space
+    tuple_space = {}
+    total_key_length = 0
+    total_value_length = 0
+    client_connections = 0
 
-        with client_conn:
-            while True:
-                data = client_conn.recv(1024).decode('utf-8')
-                if not:
-                    break
+    try:
+        while True:
+            client_conn, client_addr = server_socket.accept()
+            client_connections += 1
+            print(f"Accepted connection from {client_addr}")
+
+            with client_conn:
+                while True:
+                    data = client_conn.recv(1024).decode('utf-8')
+                    if not data:
+                        break
+
+                    operation = data[0]
+                    key, value = None, None
+
+                    # Parse the request
+                    if operation == 'R' or operation == 'G':
+                        key = data[2:]
+                    elif operation == 'P':
+                        key_value = data[2:].split(' ', 1)
+                        if len(key_value) < 2:
+                            response = "ERR invalid request"
+                            client_conn.send(response.encode('utf-8'))
+                            continue
+                        key, value = key_value[0], key_value[1]
+
+    except KeyboardInterrupt:
+        # Handle graceful shutdown
+        print("\nServer shutting down...")
+        server_socket.close()
 
 
 def main():
