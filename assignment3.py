@@ -65,15 +65,59 @@ def start_server():
                     key, value = None, None
 
                     # Parse the request
-                    if operation == 'R' or operation == 'G':
+                    if operation == 'READ' or operation == 'GET':
                         key = data[2:]
-                    elif operation == 'P':
+                    elif operation == 'PUT':
                         key_value = data[2:].split(' ', 1)
                         if len(key_value) < 2:
                             response = "ERR invalid request"
                             client_conn.send(response.encode('utf-8'))
                             continue
                         key, value = key_value[0], key_value[1]
+
+                    # Process the request
+                    if operation == 'READ':
+                        total_operations += 1
+                        total_reads += 1
+
+                        if key in tuple_space:
+                            response = f"0{len(key) + len(tuple_space[key]) + 14} OK ({key}, {tuple_space[key]}) read"
+                        else:
+                            response = f"ERR {key} does not exist"
+                    elif operation == 'GET':
+                        total_operations += 1
+                        total_gets += 1
+
+                        if key in tuple_space:
+                            response = f"0{len(key) + len(tuple_space[key]) + 16} OK ({key}, {tuple_space[key]}) removed"
+                            del tuple_space[key]
+                            total_key_length -= len(key)
+                            total_value_length -= len(tuple_space[key])
+                        else:
+                            response = f"ERR {key} does not exist"
+                    elif operation == 'PUT':
+                        total_operations += 1
+                        total_puts += 1
+
+                        if key not in tuple_space:
+                            tuple_space[key] = value
+                            total_key_length += len(key)
+                            total_value_length += len(value)
+                            response = f"0{len(key) + len(value) + 14} OK ({key}, {value}) added"
+                        else:
+                            errors += 1
+                            response = f"ERR {key} already exists"
+                    else:
+                        response = "ERR invalid operation"
+
+                    # Send the response back to the client
+                    client_conn.send(response.encode('utf-8'))
+
+            total_clients += 1
+            # Print server summary every 10 seconds or periodically
+            print(f"Current tuple space size: {len(tuple_space)}")
+            print(f"Total clients connected: {total_clients}")
+            print(f"Total operations: {total_operations}, READs: {total_reads}, GETs: {total_gets}, PUTs: {total_puts}")
 
     except KeyboardInterrupt:
         # Handle graceful shutdown
