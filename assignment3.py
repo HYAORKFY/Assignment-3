@@ -4,6 +4,35 @@ import socket
 import threading
 import time
 
+# The thread-safe TupleSpace class
+class TupleSpace:
+    def __init__(self):
+        self.tuple_space = {}
+        self.lock = threading.Lock()
+
+    def put(self, key, value):
+        with self.lock:
+            if key in self.tuple_space:
+                return "024 ERR key already exists"
+            if len(key) > 999 or len(value) > 999:
+                return "024 ERR key or value too long"
+            self.tuple_space[key] = value
+            return f"0{len(key) + len(value) + 14} OK ({key}, {value}) added"
+
+    def get(self, key):
+        with self.lock:
+            if key not in self.tuple_space:
+                return "024 ERR key does not exist"
+            value = self.tuple_space.pop(key)
+            return f"0{len(key) + len(value) + 16} OK ({key}, {value}) removed"
+
+    def read(self, key):
+        with self.lock:
+            if key not in self.tuple_space:
+                return "024 ERR key does not exist"
+            value = self.tuple_space[key]
+            return f"0{len(key) + len(value) + 14} OK ({key}, {value}) read"
+
 def send_request_to_server(host, port, filename):
     """Send each line of the file as a request to the server."""
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -35,6 +64,8 @@ def start_server():
     server_socket.bind((host, port))
     server_socket.listen(5)
 
+    print(f"Server started on {host}:{port}")
+
     # Keep track of some statistics
     total_clients = 0
     total_operations = 0
@@ -44,7 +75,7 @@ def start_server():
     errors = 0
 
     # The tuple space
-    tuple_space = {}
+    tuple_space = TupleSpace()
 
     try:
         while True:
@@ -73,30 +104,15 @@ def start_server():
                     if operation == 'GET':
                         total_operations += 1
                         total_gets += 1
-
-                        if key in tuple_space:
-                            response = f"0{len(key) + len(tuple_space[key]) + 16} OK ({key}, {tuple_space[key]}) removed"
-                            del tuple_space[key]
-                        else:
-                            response = f"024 ERR {key} does not exist"
+                        response = tuple_space.get(key)
                     elif operation == 'PUT':
                         total_operations += 1
                         total_puts += 1
-
-                        if key not in tuple_space:
-                            tuple_space[key] = value
-                            response = f"0{len(key) + len(value) + 14} OK ({key}, {value}) added"
-                        else:
-                            errors += 1
-                            response = f"024 ERR {key} already exists"
+                        response = tuple_space.put(key, value)
                     elif operation == 'READ':
                         total_operations += 1
                         total_reads += 1
-
-                        if key in tuple_space:
-                            response = f"0{len(key) + len(tuple_space[key]) + 14} OK ({key}, {tuple_space[key]}) read"
-                        else:
-                            response = f"024 ERR {key} does not exist"
+                        response = tuple_space.read(key)
                     else:
                         response = "024 ERR invalid operation"
 
@@ -104,7 +120,7 @@ def start_server():
                     client_conn.send(response.encode('utf-8'))
 
             # Print server summary every 10 seconds or periodically
-            print(f"Current tuple space size: {len(tuple_space)}")
+            print(f"Current tuple space size: {len(tuple_space.tuple_space)}")
             print(f"Total clients connected: {total_clients}")
             print(f"Total operations: {total_operations}, READs: {total_reads}, GETs: {total_gets}, PUTs: {total_puts}")
 
@@ -120,7 +136,6 @@ def main():
     server_thread.start()
 
     # Wait for the server to start
-
     time.sleep(1)
 
     # Find all client_*.txt files in the same directory
