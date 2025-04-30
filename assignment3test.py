@@ -1,5 +1,6 @@
 import threading
 import socket
+import time
 
 def client_thread(host, port, requests, semaphore):
     # Function for each client thread to send requests and receive responses
@@ -42,3 +43,8 @@ def test_concurrent_access():
 
     for thread in threads:
         thread.join()
+
+if __name__ == '__main__':
+    # Wait to ensure the server is fully started
+    time.sleep(10)
+    test_concurrent_access()
