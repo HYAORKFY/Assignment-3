@@ -134,6 +134,9 @@ def handle_client(client_conn, client_addr, tuple_space, stats):
 
             client_conn.send(response.encode('utf-8'))
 
+    except Exception as e:
+        print(f"Error handling client {client_addr}: {e}")
+        stats.increment_errors()
     finally:
         client_conn.close()
 
