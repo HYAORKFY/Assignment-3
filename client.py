@@ -6,7 +6,7 @@ import time
 import subprocess
 
 def format_request(operation, key, value=None):
-    """Format the request message according to the protocol."""
+    # Format the request message according to the protocol.
     if operation == 'PUT':
         request = f"{operation} {key} {value}"
     else:
@@ -14,7 +14,7 @@ def format_request(operation, key, value=None):
     return f"{len(request):03} {request}"
 
 def send_request_to_server(host, port, filename):
-    """Send each line of the file as a request to the server."""
+    # Send each line of the file as a request to the server.
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))
 
@@ -59,7 +59,7 @@ def main():
     time.sleep(5)
 
 def start_server():
-    """Start the server in a separate process."""
+    # Start the server in a separate process.
     subprocess.Popen(['python', 'server.py'])
 
 if __name__ == '__main__':

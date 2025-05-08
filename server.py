@@ -2,20 +2,25 @@ import socket
 import threading
 import time
 
+# TupleSpace class to manage tuple space
 class TupleSpace:
     def __init__(self):
+        # Store key - value pairs
         self.tuple_space = {}
+        # Thread - safe lock
         self.lock = threading.Lock()
 
+    # Add a tuple to the space
     def put(self, key, value):
         with self.lock:
             if key in self.tuple_space:
                 return "024 ERR key already exists"
-            if len(key) > 999 or len(value) > 999:
+            if len(key) > 999 or len(value) > 999 or len(key) + len(value) > 970:
                 return "024 ERR key or value too long"
             self.tuple_space[key] = value
             return f"0{len(key) + len(value) + 14} OK ({key}, {value}) added"
 
+    # Get and remove a tuple
     def get(self, key):
         with self.lock:
             if key not in self.tuple_space:
@@ -23,6 +28,7 @@ class TupleSpace:
             value = self.tuple_space.pop(key)
             return f"0{len(key) + len(value) + 16} OK ({key}, {value}) removed"
 
+    # Read a tuple without removal
     def read(self, key):
         with self.lock:
             if key not in self.tuple_space:
@@ -30,6 +36,7 @@ class TupleSpace:
             value = self.tuple_space[key]
             return f"0{len(key) + len(value) + 14} OK ({key}, {value}) read"
 
+# ServerStatistics class to track server stats
 class ServerStatistics:
     def __init__(self):
         self.total_clients = 0
@@ -60,13 +67,12 @@ class ServerStatistics:
 def start_server():
     host = 'localhost'
     port = 51234
-
+    # Create TCP socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
     server_socket.listen(5)
-
     print(f"Server started on {host}:{port}")
-
+    # Create TupleSpace and ServerStatistics instances
     tuple_space = TupleSpace()
     stats = ServerStatistics()
 
@@ -75,6 +81,7 @@ def start_server():
             print_server_summary(tuple_space, stats)
             time.sleep(10)
 
+    # Start summary thread
     summary_thread = threading.Thread(target=print_summary_periodically)
     summary_thread.daemon = True
     summary_thread.start()
@@ -84,15 +91,15 @@ def start_server():
             client_conn, client_addr = server_socket.accept()
             stats.increment_clients()
             print(f"Accepted connection from {client_addr}")
-
+            # Start client - handling thread
             client_handler = threading.Thread(target=handle_client, args=(client_conn, client_addr, tuple_space, stats))
             client_handler.start()
-
     except KeyboardInterrupt:
         print("\nServer shutting down...")
         server_socket.close()
 
 def handle_client(client_conn, client_addr, tuple_space, stats):
+    # Handle client requests in a separate thread
     try:
         while True:
             data = client_conn.recv(1024).decode('utf-8')
@@ -113,7 +120,7 @@ def handle_client(client_conn, client_addr, tuple_space, stats):
             key = parts[1]
             value = parts[2] if len(parts) > 2 else None
 
-            # Process the request
+            # Process the request based on the operation
             if operation == 'GET':
                 stats.increment_operations()
                 stats.increment_gets()
@@ -145,6 +152,7 @@ def handle_client(client_conn, client_addr, tuple_space, stats):
         client_conn.close()
 
 def print_server_summary(tuple_space, stats):
+    # Print a summary of the server's current state
     num_tuples = len(tuple_space.tuple_space)
     if num_tuples == 0:
         avg_tuple_size = avg_key_size = avg_value_size = 0
