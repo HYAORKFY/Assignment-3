@@ -99,7 +99,10 @@ def handle_client(client_conn, client_addr, tuple_space, stats):
             if not data:
                 break
 
-            parts = data.split(maxsplit=2)
+            # Parse the request
+            length = int(data[:3])
+            request = data[4:length+4]
+            parts = request.split(maxsplit=2)
             if len(parts) < 2:
                 response = "024 ERR invalid request"
                 stats.increment_errors()
@@ -110,6 +113,7 @@ def handle_client(client_conn, client_addr, tuple_space, stats):
             key = parts[1]
             value = parts[2] if len(parts) > 2 else None
 
+            # Process the request
             if operation == 'GET':
                 stats.increment_operations()
                 stats.increment_gets()

@@ -5,6 +5,14 @@ import threading
 import time
 import subprocess
 
+def format_request(operation, key, value=None):
+    """Format the request message according to the protocol."""
+    if operation == 'PUT':
+        request = f"{operation} {key} {value}"
+    else:
+        request = f"{operation} {key}"
+    return f"{len(request):03} {request}"
+
 def send_request_to_server(host, port, filename):
     """Send each line of the file as a request to the server."""
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -16,7 +24,20 @@ def send_request_to_server(host, port, filename):
             if not line:
                 continue
 
-            client_socket.send(line.encode('utf-8'))
+            parts = line.split(maxsplit=2)
+            if len(parts) < 2:
+                print(f"Invalid request format: {line}")
+                continue
+
+            operation = parts[0]
+            key = parts[1]
+            value = parts[2] if len(parts) > 2 else None
+
+            # Format the request message
+            request = format_request(operation, key, value)
+            client_socket.send(request.encode('utf-8'))
+
+            # Wait for the response
             response = client_socket.recv(1024).decode('utf-8')
             print(f"Sent: {line}, Received: {response}")
 
