@@ -2,6 +2,14 @@ import threading
 import socket
 import time
 
+def format_request(operation, key, value=None):
+    # Format the request message according to the protocol.
+    if operation == 'PUT':
+        request = f"{operation} {key} {value}"
+    else:
+        request = f"{operation} {key}"
+    return f"{len(request):03} {request}"
+
 def client_thread(host, port, requests, semaphore):
     # Function for each client thread to send requests and receive responses
     with semaphore:
@@ -10,9 +18,10 @@ def client_thread(host, port, requests, semaphore):
             client_socket.connect((host, port))
 
             for request in requests:
-                client_socket.send(request.encode('utf-8'))
+                formatted_request = format_request(*request.split(maxsplit=2))
+                client_socket.send(formatted_request.encode('utf-8'))
                 response = client_socket.recv(1024).decode('utf-8')
-                print(f"Sent: {request}, Received: {response}")
+                print(f"Sent: {formatted_request}, Received: {response}")
 
             client_socket.close()
         except Exception as e:
